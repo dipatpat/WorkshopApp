@@ -2,6 +2,7 @@ using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using WorkshopApp.Middlewares;
 using WorkshopApp.Repositories;
+using WorkshopApp.Services;
 
 namespace WorkshopApp;
 
@@ -16,8 +17,9 @@ public class Program
         builder.Services.AddControllers();
         builder.Services.AddScoped<IClientRepository, ClientRepository>(); 
         builder.Services.AddScoped<IMechanicRepository, MechanicRepository>();
-        builder.Services.AddScoped<IClientRepository, ClientRepository>();
         builder.Services.AddScoped<IVisitsRepository, VisitsRepository>();
+        builder.Services.AddScoped<IVisitsService, VisitsService>();
+
             
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
