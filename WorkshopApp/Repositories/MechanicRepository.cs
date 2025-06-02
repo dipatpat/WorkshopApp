@@ -36,12 +36,33 @@ public class MechanicRepository : IMechanicRepository
                 mechanic_id = mechanic_id,
                 first_name = first_name,
                 last_name = last_name,
-                license_number = licence_number, 
+                license_number = licence_number,
             };
 
             return mechanic;
         }
 
+        return null;
+    }
+
+    public async Task<Mechanic?> GetMechanicByLicenseAsync(string license, CancellationToken cancellationToken)
+    {
+        await using var con = new SqlConnection(_connectionString);
+        await using var cmd = new SqlCommand("SELECT * FROM mechanic WHERE licence_number = @license", con);
+        cmd.Parameters.AddWithValue("@license", license);
+        await con.OpenAsync(cancellationToken);
+
+        var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (await reader.ReadAsync())
+        {
+            return new Mechanic
+            {
+                mechanic_id = (int)reader["mechanic_id"],
+                license_number = (string)reader["licence_number"],
+                first_name = (string)reader["first_name"],
+                last_name = (string)reader["last_name"]
+            };
+        }
         return null;
     }
 }

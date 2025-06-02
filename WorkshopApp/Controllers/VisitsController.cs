@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using WorkshopApp.DTOs;
 using WorkshopApp.Exceptions;
 using WorkshopApp.Services;
 
@@ -22,6 +23,13 @@ public class VisitsController : ControllerBase
         var visit = await _visitsService.GetVisitByIdAsync(id, cancellationToken);
         return Ok(visit);
     }
+    
+    [HttpPost]
+    public async Task<IActionResult> AddAppointmentAsync(
+        [FromBody] CreateAppointmentDto dto, CancellationToken cancellationToken)
+    {
+        await _visitsService.AddAppointmentAsync(dto, cancellationToken);
+        return Created($"/api/visits/{dto.AppointmentId}", null);    }
 
     
 }

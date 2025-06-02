@@ -27,45 +27,46 @@ public class VisitsService : IVisitsService
             throw new BadRequestException("VisitId must be greater than zero.");
         }
 
-        var visit = await _visitsRepository.GetVisitByIdAsync(visitId, cancellationToken);
-        if (visit == null)
+        var visitDto = await _visitsRepository.GetFullVisitByIdAsync(visitId, cancellationToken);
+        if (visitDto == null)
         {
             throw new NotFoundException($"Visit with id {visitId} not found");
         }
 
-        var clientId = visit.client_id;
-
-        var client = await _clientRepository.GetClientByIdAsync(clientId, cancellationToken);
-        if (client == null)
-        {
-            throw new NotFoundException($"Client with id {clientId} not found");
-        }
-
-        var clientDto = new ClientDto
-        {
-            first_name = client.first_name,
-            last_name = client.last_name,
-            date_of_birth = client.date_of_birth,
-        };
-
-        var mechanicId = visit.mechanic_id;
-        var mechanic = await _mechanicRepository.GetMechanicByIdAsync(mechanicId, cancellationToken);
-        if (mechanic == null)
-        {
-            throw new NotFoundException($"Mechanic with id {mechanicId} not found");
-        }
-
-        var mechanicDto = new MechanicDto
-        {
-            mechanic_id = mechanic.mechanic_id,
-            license_number = mechanic.license_number,
-        };
-        var visitDto = new VisitDto
-        {
-            date = visit.date,
-            client = clientDto,
-            mechanic = mechanicDto,
-        };
         return visitDto;
     }
+    
+    public async Task AddAppointmentAsync(CreateAppointmentDto dto, CancellationToken cancellationToken)
+    {
+        if (dto.AppointmentId <= 0 || dto.PatientId <= 0 || string.IsNullOrWhiteSpace(dto.LicenseNumber))
+            throw new BadRequestException("Invalid input data.");
+
+        if (dto.Services == null || dto.Services.Count == 0)
+            throw new BadRequestException("At least one service is required.");
+
+        var existing = await _visitsRepository.GetVisitByIdAsync(dto.AppointmentId, cancellationToken);
+        if (existing != null)
+            throw new ConflictException($"Appointment with ID {dto.AppointmentId} already exists.");
+
+        var patient = await _clientRepository.GetClientByIdAsync(dto.PatientId, cancellationToken);
+        if (patient == null)
+            throw new NotFoundException($"Patient with ID {dto.PatientId} not found.");
+
+        var doctor = await _mechanicRepository.GetMechanicByLicenseAsync(dto.LicenseNumber, cancellationToken);
+        if (doctor == null)
+            throw new NotFoundException($"Doctor with License Number {dto.LicenseNumber} not found.");
+
+        foreach (var s in dto.Services)
+        {
+            bool exists = await _visitsRepository.ServiceExistsAsync(s.ServiceName, cancellationToken);
+            if (!exists)
+                throw new NotFoundException($"Service '{s.ServiceName}' not found.");
+        }
+
+        await _visitsRepository.InsertAppointmentAsync(dto.AppointmentId, dto.PatientId, doctor.mechanic_id, dto.Services, cancellationToken);
+    }
+    
+    
+
+
 }
